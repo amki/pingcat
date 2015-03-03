@@ -1,5 +1,10 @@
+import threading
+
 __author__ = 'bawki'
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import socket
+import os
+import sys
 
 
 class CatHandler(BaseHTTPRequestHandler):
@@ -18,8 +23,13 @@ class CatHandler(BaseHTTPRequestHandler):
 class CatServer(HTTPServer):
     def __init__(self):
         try:
-            self = HTTPServer(('', 8042), CatHandler)
+            self = HTTPServer(("::", 8042), CatHandler, False)
+            self.address_family = socket.AF_INET6
+            self.socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            self.socket.setsockopt(41, socket.IPV6_V6ONLY, 0)
+            self.server_bind()
+            self.server_activate()
+
             self.serve_forever()
         except KeyboardInterrupt:
             self.socket_close()
-

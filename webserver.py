@@ -32,4 +32,4 @@ class CatServer(HTTPServer):
 
             self.serve_forever()
         except KeyboardInterrupt:
-            self.socket_close()
+            self.server_close()

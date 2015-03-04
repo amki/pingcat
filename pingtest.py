@@ -68,6 +68,7 @@ class PingTest:
     ICMP_ECHO_IPV6_REPLY = 129  # Echo request (per RFC4443)
     ICMP_MAX_RECV = 2048		# Max size of incoming buffer
 
+
     MAX_SLEEP = 1000
 
     class MyStats:
@@ -78,9 +79,6 @@ class PingTest:
         maxTime = 0
         totTime = 0
         avrgTime = 0
-        fracLoss = 1.0
-
-    myStats = MyStats  # NOT Used globally anymore.
 
     def checksum(source_string):
         """
@@ -123,7 +121,6 @@ class PingTest:
                 print('Note that this test requires root.')
                 raise  # raise the original error
         else:
-
             try:  # One could use UDP here, but it's obscure
                 mySocket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
                 mySocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -131,9 +128,8 @@ class PingTest:
             except OSError as e:
                 # etype, evalue, etb = sys.exc_info()
                 print("failed. (socket error: '%s')" % str(e))  # evalue.args[1])
-                print('Note that python-ping uses RAW sockets'
-                        'and requires root rights.')
-                raise # raise the original error
+                print('Note that this test requires root.')
+                raise  # raise the original error
 
         #my_ID = os.getpid() & 0xFFFF
         my_ID = (os.getpid() ^ get_ident()) & 0xFFFF
@@ -151,19 +147,6 @@ class PingTest:
 
         if recvTime:
             delay = (recvTime-sentTime)*1000
-            if not quiet:
-                if ipv6:
-                    host_addr = hostname
-                else:
-                    try:
-                        host_addr = socket.inet_ntop(socket.AF_INET, struct.pack("!I", iphSrcIP))
-                    except AttributeError:
-                        # Python on windows dosn't have inet_ntop.
-                        host_addr = hostname
-
-                print("%d bytes from %s: icmp_seq=%d ttl=%d time=%d ms" % (
-                    dataSize, host_addr, icmpSeqNumber, iphTTL, delay)
-                )
             myStats.pktsRcvd += 1
             myStats.totTime += delay
             if myStats.minTime > delay:
@@ -172,7 +155,6 @@ class PingTest:
                 myStats.maxTime = delay
         else:
             delay = None
-            print("Request timed out.")
 
         return delay
 
@@ -186,7 +168,7 @@ class PingTest:
         # (numDataBytes - 8) - Remove header size from packet size
         myChecksum = 0
 
-        # Make a dummy heder with a 0 checksum.
+        # Make a dummy header with a 0 checksum.
         if ipv6:
             header = struct.pack(
                 "!BbHHh", PingTest.ICMP_ECHO_IPV6, 0, myChecksum, myID, mySeqNumber
@@ -197,17 +179,9 @@ class PingTest:
             )
 
         padBytes = []
-        startVal = 0x42
-        # because of the string/byte changes in python 2/3 we have
-        # to build the data differently for different version
-        # or it will make packets with unexpected size.
-        if sys.version[:1] == '2':
-            bytes = struct.calcsize("d")
-            data = ((numDataBytes - 8) - bytes) * "Q"
-            data = struct.pack("d", default_timer()) + data
-        else:
-            for i in range(startVal, startVal + (numDataBytes - 8)):
-                padBytes += [(i & 0xff)]  # Keep chars in the 0-255 range
+        startVal = 0x41
+        for i in range(startVal, startVal + numDataBytes):
+            padBytes += [(i & 0xff)]  # Keep chars in the 0-255 range
             # data = bytes(padBytes)
             data = bytearray(padBytes)
 
@@ -230,7 +204,7 @@ class PingTest:
         sendTime = default_timer()
 
         try:
-            mySocket.sendto(packet, (destIP, 1)) # Port number is irrelevant for ICMP
+            mySocket.sendto(packet, (destIP, 1))  # Port number is irrelevant for ICMP
         # except socket.error:
         except OSError as e:
             # etype, evalue, etb = sys.exc_info()
@@ -275,7 +249,6 @@ class PingTest:
 
             # Match only the packets we care about
             if (icmpType != 8) and (icmpPacketID == myID):
-            # if icmpPacketID == myID: # Our packet
                 dataSize = len(recPacket) - 28
                 # print (len(recPacket.encode()))
                 return timeReceived, (dataSize + 8), iphSrcIP, icmpSeqNumber, iphTTL
@@ -283,27 +256,6 @@ class PingTest:
             timeLeft = timeLeft - howLongInSelect
             if timeLeft <= 0:
                 return None, 0, 0, 0, 0
-
-    def dump_stats(myStats):
-        """
-        Show stats when pings are done
-        """
-        print("\n----%s PYTHON PING Statistics----" % myStats.thisIP)
-
-        if myStats.pktsSent > 0:
-            myStats.fracLoss = (myStats.pktsSent - myStats.pktsRcvd)/myStats.pktsSent
-
-        print("%d packets transmitted, %d packets received, %0.1f%% packet loss" % (
-            myStats.pktsSent, myStats.pktsRcvd, 100.0 * myStats.fracLoss
-        ))
-
-        if myStats.pktsRcvd > 0:
-            print("round-trip (ms)  min/avg/max = %d/%0.1f/%d" % (
-                myStats.minTime, myStats.totTime/myStats.pktsRcvd, myStats.maxTime
-            ))
-
-        print("")
-        return
 
     def verbose_ping(hostname, timeout=3000, count=3, numDataBytes=64, path_finder=False, ipv6=False):
         """
@@ -321,11 +273,10 @@ class PingTest:
             else:
                 info = socket.getaddrinfo(hostname, None)[0]
                 destIP = info[4][0]
-                print(destIP)
-            print("\nPYTHON PING %s (%s): %d data bytes" % (hostname, destIP, numDataBytes))
+            print("\nStarting PingTest to %s (%s) with %d data bytes" % (hostname, destIP, numDataBytes))
         except socket.gaierror as e:
             # etype, evalue, etb = sys.exc_info()
-            print("\nPYTHON PING: Unknown host: %s (%s)" % (hostname, str(e)))  # (hostname, evalue.args[1]))
+            print("\nPingTest: Unknown host: %s (%s)" % (hostname, str(e)))  # (hostname, evalue.args[1]))
             print()
             return
 
@@ -342,11 +293,27 @@ class PingTest:
             if PingTest.MAX_SLEEP > delay:
                 time.sleep((PingTest.MAX_SLEEP - delay)/1000)
 
-        PingTest.dump_stats(myStats)
-        # 0 if we receive at least one packet
-        # 1 if we don't receive any packets
-        return not myStats.pktsRcvd
+        return myStats
 
+
+def dump_stats(myStats):
+    """
+    Show stats when pings are done
+    """
+    print("\n----%s PYTHON PING Statistics----" % myStats.thisIP)
+
+    if myStats.pktsSent > 0:
+        myStats.fracLoss = (myStats.pktsSent - myStats.pktsRcvd)/myStats.pktsSent
+
+    print("%d packets transmitted, %d packets received, %0.1f%% packet loss" % (myStats.pktsSent, myStats.pktsRcvd, 100.0 * myStats.fracLoss))
+
+    if myStats.pktsRcvd > 0:
+        print("round-trip (ms)  min/avg/max = %d/%0.1f/%d" % (myStats.minTime, myStats.totTime/myStats.pktsRcvd, myStats.maxTime))
+
+    print("")
+    return
 if __name__ == '__main__':
-    PingTest.verbose_ping("2001:4ba0:ffe8:e::101", 3000, 3, 1024, False, True)
-    PingTest.verbose_ping("89.163.214.191", 3000, 3, 1024, False, False)
+    stats = PingTest.verbose_ping("2001:4ba0:ffe8:e::101", 3000, 3, 1024, False, True)
+    dump_stats(stats)
+    stats = PingTest.verbose_ping("89.163.214.191", 3000, 3, 1024, False, False)
+    dump_stats(stats)

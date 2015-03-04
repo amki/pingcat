@@ -3,13 +3,12 @@ import threading
 __author__ = 'bawki'
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import socket
-import os
-import sys
+import multiprocessing
 
 
 class CatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        print('Get request received')
+        print(multiprocessing.current_process().name, 'Get request received')
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         # TODO: set to production url after testing!
@@ -29,6 +28,7 @@ class CatServer(HTTPServer):
             self.socket.setsockopt(41, socket.IPV6_V6ONLY, 0)
             self.server_bind()
             self.server_activate()
+            print("Started webserver on: ", self.socket.getsockname())
 
             self.serve_forever()
         except KeyboardInterrupt:

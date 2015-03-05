@@ -257,7 +257,7 @@ class PingTest:
             if timeLeft <= 0:
                 return None, 0, 0, 0, 0
 
-    def verbose_ping(hostname, timeout=3000, count=3, numDataBytes=64, path_finder=False, ipv6=False):
+    def verbose_ping(hostname, timeout=3000, count=3, numDataBytes=64, ipv6=False):
         """
         Send >count< ping to >destIP< with the given >timeout< and display
         the result.
@@ -292,9 +292,13 @@ class PingTest:
             # Pause for the remainder of the MAX_SLEEP period (if applicable)
             if PingTest.MAX_SLEEP > delay:
                 time.sleep((PingTest.MAX_SLEEP - delay)/1000)
-
+        dump_stats(myStats)
         return myStats
 
+    def begin(waitperiod, hostname, timeout, count, numDataBytes, ipv6):
+        while True:
+            PingTest.verbose_ping(hostname, timeout, count, numDataBytes, ipv6)
+            time.sleep(waitperiod)
 
 def dump_stats(myStats):
     """
@@ -312,8 +316,3 @@ def dump_stats(myStats):
 
     print("")
     return
-if __name__ == '__main__':
-    stats = PingTest.verbose_ping("2001:4ba0:ffe8:e::101", 3000, 3, 1024, False, True)
-    dump_stats(stats)
-    stats = PingTest.verbose_ping("89.163.214.191", 3000, 3, 1024, False, False)
-    dump_stats(stats)

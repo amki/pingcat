@@ -11,8 +11,8 @@ __author__ = 'bawki'
 db = database.CatDb()
 
 
-def verbose_ping(dst, timeout, count, numDataBytes, path_finder, ipv6):
-    PingTest.verbose_ping(dst, timeout, count, numDataBytes, path_finder, ipv6)
+def pingtest(waitperiod, hostname, timeout, count, numDataBytes, ipv6):
+    PingTest.begin(waitperiod, hostname, timeout, count, numDataBytes, ipv6)
 
 
 def signal_handler():
@@ -21,8 +21,8 @@ def signal_handler():
 
 tasks = [
     ("WebServer", CatServer, ""),
-    ("Pingtest v6", verbose_ping, ("2001:4ba0:ffe8:e::101", 3000, 3, 1024, False, True)),
-    ("PingTest v4", verbose_ping, ("89.163.214.191", 3000, 3, 1024, False, False))
+    ("Pingtest v6", pingtest, (5, "2001:4ba0:ffe8:e::101", 3000, 3, 1024, True)),
+    ("PingTest v4", pingtest, (4, "89.163.214.191", 3000, 3, 1024, False))
     ]
 
 if __name__ == '__main__':

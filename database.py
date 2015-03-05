@@ -1,15 +1,18 @@
 __author__ = 'bawki'
 
 import sqlite3
-import time
 
 
 class CatDb():
     def __init__(self):
+        self.db = None
+        self.c = None
+
+    def connect(self):
         self.db = sqlite3.connect('pingcat.db')
         self.c = self.db.cursor()
-        self.createTables()
 
+'''
     def createTables(self):
         configured = False
         self.c.execute("""SELECT name FROM sqlite_master WHERE type='table' AND name='pingdata';""")
@@ -33,3 +36,4 @@ class CatDb():
         self.c.execute("""INSERT INTO 'pingdata' VALUES (?, ?, ?, ?, ?, ?)""",
                        (time.time(), dst, timeout, count, numDataBytes, data))
         self.db.commit()
+'''

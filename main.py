@@ -12,7 +12,8 @@ db = database.CatDb()
 
 
 def pingtest(waitperiod, hostname, timeout, count, numDataBytes, ipv6):
-    PingTest.begin(waitperiod, hostname, timeout, count, numDataBytes, ipv6)
+    pt = PingTest()
+    pt.begin(waitperiod, hostname, timeout, count, numDataBytes, ipv6)
 
 
 def signal_handler():

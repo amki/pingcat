@@ -47,6 +47,9 @@ import array
 import socket
 import struct
 import select
+from database import CatDb
+import sqlite3
+
 try:
     from _thread import get_ident
 except ImportError:
@@ -257,12 +260,12 @@ class PingTest:
             if timeLeft <= 0:
                 return None, 0, 0, 0, 0
 
-    def verbose_ping(hostname, timeout=3000, count=3, numDataBytes=64, ipv6=False):
+    def verbose_ping(self, hostname, timeout=3000, count=3, numDataBytes=64, ipv6=False):
         """
         Send >count< ping to >destIP< with the given >timeout< and display
         the result.
         """
-        myStats = PingTest.MyStats()  # Reset the stats
+        myStats = self.MyStats()  # Reset the stats
 
         mySeqNumber = 0  # Starting value
 
@@ -273,10 +276,10 @@ class PingTest:
             else:
                 info = socket.getaddrinfo(hostname, None)[0]
                 destIP = info[4][0]
-            print("\nStarting PingTest to %s (%s) with %d data bytes" % (hostname, destIP, numDataBytes))
+            print("Starting PingTest to %s (%s) with %d data bytes" % (hostname, destIP, numDataBytes))
         except socket.gaierror as e:
             # etype, evalue, etb = sys.exc_info()
-            print("\nPingTest: Unknown host: %s (%s)" % (hostname, str(e)))  # (hostname, evalue.args[1]))
+            print("PingTest: Unknown host: %s (%s)" % (hostname, str(e)))  # (hostname, evalue.args[1]))
             print()
             return
 
@@ -292,13 +295,52 @@ class PingTest:
             # Pause for the remainder of the MAX_SLEEP period (if applicable)
             if PingTest.MAX_SLEEP > delay:
                 time.sleep((PingTest.MAX_SLEEP - delay)/1000)
-        dump_stats(myStats)
         return myStats
 
-    def begin(waitperiod, hostname, timeout, count, numDataBytes, ipv6):
+    # FIXME: this has a serious race condition on first startup
+    def maybeCreateTable(self):
+        exists = False
+        self.db.c.execute("""SELECT name FROM sqlite_master WHERE type='table' AND name='pingdata';""")
+        data = self.db.c.fetchall()
+        for row in data:
+            if row[0] == 'pingdata':
+                exists = True
+
+        if not exists:
+            self.db.c.execute("""create table pingdata (
+                date REAL,
+                dst text,
+                sent int,
+                received int,
+                min int,
+                max int,
+                avg int,
+                loss float)""")
+            self.db.db.commit()
+            self.db.c.fetchone()
+
+    def storeData(self, stats):
+        print("Storing data...")
+        print(stats)
+        fracLoss = (stats.pktsSent - stats.pktsRcvd)/stats.pktsSent
+        try:
+            self.db.c.execute("""INSERT INTO 'pingdata' VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                              (time.time(), stats.thisIP, stats.pktsSent, stats.pktsRcvd, stats.minTime, stats.maxTime, stats.totTime/stats.pktsRcvd, 100*fracLoss))
+            self.db.db.commit()
+        except sqlite3.OperationalError:
+            print("PingTest - WARNING: COULD NOT WRITE TO DB, TRYING NEXT ROUND")
+        return
+
+    def begin(self, waitperiod, hostname, timeout, count, numDataBytes, ipv6):
+        self.db.connect()
+        self.maybeCreateTable()
         while True:
-            PingTest.verbose_ping(hostname, timeout, count, numDataBytes, ipv6)
+            stats = self.verbose_ping(hostname, timeout, count, numDataBytes, ipv6)
+            self.storeData(stats)
             time.sleep(waitperiod)
+
+    def __init__(self):
+        self.db = CatDb()
 
 def dump_stats(myStats):
     """

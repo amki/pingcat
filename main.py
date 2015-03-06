@@ -22,7 +22,7 @@ def signal_handler():
 
 tasks = [
     ("WebServer", CatServer, ""),
-    ("Pingtest v6", pingtest, (5, "2001:4ba0:ffe8:e::101", 3000, 3, 1024, True)),
+    ("PingTest v6", pingtest, (5, "2001:4ba0:ffe8:e::101", 3000, 3, 1024, True)),
     ("PingTest v4", pingtest, (4, "89.163.214.191", 3000, 3, 1024, False))
     ]
 

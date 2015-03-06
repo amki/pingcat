@@ -4,20 +4,22 @@ __author__ = 'bawki'
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import socket
 import multiprocessing
+import json
+from database import CatDb
 
 
 class CatHandler(BaseHTTPRequestHandler):
     def servePingData(self, arguments):
         self.sendSuccessHeader()
         print('servePingData: arguments->', arguments)
-        for a in arguments:
-            print("sending: ", a)
-            self.wfile.write(bytes(a, "UTF-8"))
-        return
-
+        self.wfile.write(bytes(self.statsToJson(), "UTF-8"))
 
     servlets = [("pingdata", servePingData), ]
 
+    def __init__(self, request, client_address, server):
+        self.db = CatDb()
+        self.db.connect()
+        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def do_GET(self):
         print(multiprocessing.current_process().name, 'Get request received. Path: ', self.path)
@@ -31,7 +33,23 @@ class CatHandler(BaseHTTPRequestHandler):
             self.sendNotFoundHeader()
         return
 
-
+    def statsToJson(self):
+        self.db.c.execute("SELECT * FROM 'pingdata'")
+        results = self.db.c.fetchall()
+        data = []
+        for result in results:
+            rdata = {
+                'date': result[0],
+                'thisIP': result[1],
+                'pktsSend': result[2],
+                'pktsRcvd': result[3],
+                'minTime': result[4],
+                'maxTime': result[5],
+                'totTime': result[6],
+                'fracLoss': result[7]
+            }
+            data.append(rdata)
+        return json.dumps(data, indent=4)
 
     def sendSuccessHeader(self):
         self.send_response(200)

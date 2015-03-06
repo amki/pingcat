@@ -24,7 +24,7 @@ class CatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         print(multiprocessing.current_process().name, 'Get request received. Path: ', self.path)
         path = self.path
-        req = path[1:].split("/")
+        req = path[1:].lower().split("/")
         print('parsed req: ', req)
         function = [item[1] for item in self.servlets if item[0] == req[0]]
         if len(function) == 1:
